@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Crypto Profit Calculator",
+  "description": "Easily calculate profits from crypto pairs. This app helps you maximize gains in the crypto market.",
+  "version": "1.0.0",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "index.html"
+  }
+}
