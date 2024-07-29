@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      svelecte:
+        specifier: 5.0.0-next.12
+        version: 5.0.0-next.12(svelte@5.0.0-next.200)
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^3.1.1
@@ -365,11 +369,19 @@ packages:
     resolution: {integrity: sha512-itJW8lvSA0TXEphiRoawsCksnlf8SyvmFzIhltqAHluXd88pkCd+cXJVHTDwdCr0IzwptSm035IHQktUu1QUMg==}
     engines: {node: '>=0.10.0'}
 
+  svelecte@5.0.0-next.12:
+    resolution: {integrity: sha512-Ri/LcIR5JRAGO2AOVOw68Bo0LCPd0LslvvRyykDWDnRuGItsQ5FSHfYOKD1kxBqrYOlDElnPDJxnikyc+hvVBg==}
+    peerDependencies:
+      svelte: ^5.0.0
+
   svelte-hmr@0.16.0:
     resolution: {integrity: sha512-Gyc7cOS3VJzLlfj7wKS0ZnzDVdv3Pn2IuVeJPk9m2skfhcu5bq3wtIZyQGggr7/Iim5rH5cncyQft/kRLupcnA==}
     engines: {node: ^12.20 || ^14.13.1 || >= 16}
     peerDependencies:
       svelte: ^3.19.0 || ^4.0.0
+
+  svelte-tiny-virtual-list@2.1.2:
+    resolution: {integrity: sha512-jeP/WMvgFUR4mYXHGPiCexjX5DuzSO+3xzHNhxfcsFyy+uYPtnqI5UGb383swpzQAyXB0OBqYfzpYihD/5gxnA==}
 
   svelte@5.0.0-next.200:
     resolution: {integrity: sha512-Tf1cOsl2WTmn/TB7k151OFRdoYTIVtAwVThVPeuI+hymUkNd4esn3ApEPxV9r5loqfItBI0z4+EX1nbH4EeEAg==}
@@ -684,9 +696,16 @@ snapshots:
 
   source-map-js@1.2.0: {}
 
+  svelecte@5.0.0-next.12(svelte@5.0.0-next.200):
+    dependencies:
+      svelte: 5.0.0-next.200
+      svelte-tiny-virtual-list: 2.1.2
+
   svelte-hmr@0.16.0(svelte@5.0.0-next.200):
     dependencies:
       svelte: 5.0.0-next.200
+
+  svelte-tiny-virtual-list@2.1.2: {}
 
   svelte@5.0.0-next.200:
     dependencies:

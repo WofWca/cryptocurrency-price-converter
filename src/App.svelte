@@ -1,6 +1,7 @@
 <svelte:options runes={true} />
 <script>
   // @ts-check
+  import Svelecte from 'svelecte';
   // import { dummyData } from "./dummyData"
 
   const apiBase = "https://api.coincap.io/v2";
@@ -31,12 +32,19 @@
    */
 
   /** @type {Map<Asset["id"], Asset> | null} */
-  let assets = $state(null);
+  let assetsMap = $state(null);
+  /** @type {Asset[] | null} */
+  let assetsArray = $state(null);
 
   // TODO perhaps don't use default values while settings are loading.
   // Separating this into a component might help.
+  //
+  // `null` because with Svelecte it's possible to unselect
+  // https://github.com/mskocik/svelecte/issues/172
+  /** @type {Asset["id"] | null} */
   let fromAssetId = $state("bitcoin");
   let fromAmount = $state(1);
+  /** @type {Asset["id"] | null} */
   let toAssetId = $state("ethereum");
 
   const loadSettings = typeof chrome !== "undefined"
@@ -84,24 +92,20 @@
     // otherwise the user can't interact with the UI
     // until this has loaded.
     const res = await fetch(`${apiBase}/assets?limit=2000`);
-    const assetsArray = (await res.json()).data;
+    assetsArray = (await res.json()).data;
     // const assetsArray = (dummyData).data;
-
-    const assetsMap = new Map();
-
-    /** @type {Asset} */
-    const usdDummyAsset = {
+    assetsArray.unshift({
       id: "_usd",
       name: "USD",
       symbol: "USD",
       priceUsd: /** @type {NumberString} */ ("1"),
-    }
-    assetsMap.set(usdDummyAsset.id, usdDummyAsset)
+    })
 
+    const assetsMap_ = new Map();
     for (const asset of assetsArray) {
-      assetsMap.set(asset.id, asset);
+      assetsMap_.set(asset.id, asset);
     }
-    assets = assetsMap
+    assetsMap = assetsMap_;
 
     // TODO subscribe to price updates (see API docs).
   })();
@@ -111,12 +115,6 @@
   {#await initP}
     <p>Loading...</p>
   {:then}
-    {#snippet selectOptions()}
-      <!-- TODO add other fiat currencies, use `/rates` endpoint -->
-      {#each assets as [_, asset] (asset.id)}
-        <option value={asset.id}>{asset.symbol}</option>
-      {/each}
-    {/snippet}
     <form style="display: grid;">
       <!-- TODO add step? -->
       <!-- TODO fix: sometimes, if you save a really low amount,
@@ -129,15 +127,23 @@
         aria-label="From amount"
       />
 
-      <!-- TODO proper search instead of select? -->
-      <!-- TODO sort them alphabetically... -->
-      <select
-        bind:value={fromAssetId}
+      <!-- TODO aria-label="From currency" -->
+      <!-- TODO sort them alphabetically? Same for another Svelecte -->
+      <!-- TODO style: it expands the popup, unlike a native "select" -->
+      <!-- TODO add other fiat currencies, use `/rates` endpoint -->
+      <div
         style="grid-column: 1; grid-row: 2;"
-        aria-label="From currency"
       >
-        {@render selectOptions()}
-      </select>
+        <Svelecte
+          bind:value={fromAssetId}
+          options={assetsArray}
+          valueField={'id'}
+          labelField={'name'}
+
+          name="fromAssetId"
+          required={true}
+        />
+      </div>
 
       <p
         style="
@@ -148,13 +154,20 @@
         "
       >=</p>
 
-      <select
-        bind:value={toAssetId}
+      <!-- TODO aria-label="To currency" -->
+      <div
         style="grid-column: 3; grid-row: 2;"
-        aria-label="To currency"
       >
-        {@render selectOptions()}
-      </select>
+        <Svelecte
+          bind:value={toAssetId}
+          options={assetsArray}
+          valueField={'id'}
+          labelField={'name'}
+
+          name="toAssetId"
+          required={true}
+        />
+      </div>
 
       <!-- Yes, it's OK to put `output` inside of a <form> -->
       <output
@@ -165,10 +178,14 @@
         //
         // TODO we'll probably need better formatting, too much precision sometimes
         (
-          parseFloat(assets.get(fromAssetId).priceUsd)
-          / parseFloat(assets.get(toAssetId).priceUsd)
+          fromAssetId
+          && toAssetId
+        ) ? (
+          parseFloat(assetsMap.get(fromAssetId).priceUsd)
+          / parseFloat(assetsMap.get(toAssetId).priceUsd)
           * fromAmount
         ).toFixed(20)
+        : "-"
       }</output>
 
       <button
@@ -188,4 +205,45 @@
 </main>
 
 <style>
+@media (prefers-color-scheme: dark) {
+  /* Svelecte theme
+  https://svelecte-v5.vercel.app/theme
+  Copy-pasted from the website. */
+  :root {
+    --sv-min-height: 40px;
+    --sv-bg: #383838;
+    --sv-disabled-bg: #222;
+    --sv-border: 1px solid #626262;
+    --sv-border-radius: 4px;
+    --sv-general-padding: 4px;
+    --sv-control-bg: var(--sv-bg);
+    --sv-item-wrap-padding: 3px 3px 3px 6px;
+    --sv-selection-wrap-padding: 3px 3px 3px 4px;
+    --sv-selection-multi-wrap-padding: 3px 3px 3px 6px;
+    --sv-item-selected-bg: #5c73e7;
+    --sv-item-btn-color: #ccc;
+    --sv-item-btn-color-hover: #ccc;
+    --sv-item-btn-bg: #626262;
+    --sv-item-btn-bg-hover: #3a5ccc;
+    --sv-icon-color: #bbb;
+    --sv-icon-color-hover: #ccc;
+    --sv-icon-bg: transparent;
+    --sv-icon-size: 20px;
+    --sv-separator-bg: #626262;
+    --sv-btn-border: 0;
+    --sv-placeholder-color: #ccccd6;
+    --sv-dropdown-bg: var(--sv-bg);
+    --sv-dropdown-border: var(--sv-border);
+    --sv-dropdown-offset: 1px;
+    --sv-dropdown-width: auto;
+    --sv-dropdown-shadow: 0 1px 3px #555;
+    --sv-dropdown-height: 320px;
+    --sv-dropdown-active-bg: #555555;
+    --sv-dropdown-selected-bg: #754545;
+    --sv-create-kbd-border: 1px solid #626262;
+    --sv-create-kbd-bg: #626262;
+    --sv-create-disabled-bg: #fcbaba;
+    --sv-loader-border: 2px solid #626262
+  }
+}
 </style>
