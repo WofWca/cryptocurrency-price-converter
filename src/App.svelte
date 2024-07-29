@@ -36,6 +36,26 @@
   /** @type {Asset[] | null} */
   let assetsArray = $state(null);
 
+  // loadAssetsCache
+  (typeof chrome !== "undefined"
+    ? async () => {
+      const { assetsCache } = await chrome.storage.local.get("assetsCache");
+      if (assetsCache) {
+        assetsArray = assetsCache;
+        assetsMap = assetsMapFromAssetsArray(assetsCache);
+        console.log("Loaded assetsCache");
+      }
+    } : async () => {
+      const assetsCacheStr = localStorage.getItem("assetsCache");
+      if (assetsCacheStr) {
+        const assetsCache = JSON.parse(assetsCacheStr);
+        assetsArray = assetsCache;
+        assetsMap = assetsMapFromAssetsArray(assetsCache);
+        console.log("Loaded assetsCache");
+      }
+    }
+  )()
+
   // TODO perhaps don't use default values while settings are loading.
   // Separating this into a component might help.
   //
@@ -82,7 +102,7 @@
     saveSettings();
   })
 
-  const initP = (async function fetchAssets() {
+  const fetchAssetsP = (async function fetchAssets() {
     // TODO this is paginated:
     // https://docs.coincap.io/#89deffa0-ab03-4e0a-8d92-637a857d2c91
     // we should fetch another 2000, if they do exist.
@@ -91,29 +111,62 @@
     // otherwise the user can't interact with the UI
     // until this has loaded.
     const res = await fetch(`${apiBase}/assets?limit=2000`);
-    assetsArray = (await res.json()).data;
+    const assetsArray_ = (await res.json()).data.map(asset => ({
+      // Only use the things that we need for performance,
+      // especially for caching.
+      id: asset.id,
+      symbol: asset.symbol,
+      name: asset.name,
+      priceUsd: asset.priceUsd,
+    }))
+    // assetsArray = (await res.json()).data;
     // const assetsArray = (dummyData).data;
-    assetsArray.unshift({
+    assetsArray_.unshift({
       id: "_usd",
       name: "USD",
       symbol: "USD",
       priceUsd: /** @type {NumberString} */ ("1"),
     })
 
+    assetsArray = assetsArray_;
+    assetsMap = assetsMapFromAssetsArray(assetsArray_);
+
+    // storeAssetsCache
+    // TODO perf: It would probably be better and more maintainable
+    // to just store the API reponse, using a ServiceWorker or something.
+    // Loading from storage takes a while.
+    (typeof chrome !== "undefined"
+      ? (assetsArray) => {
+        console.log("Saving assetsCache");
+        chrome.storage.local.set({
+          // Looks like Svelte's proxy thing stores this as an Object
+          // instead of an array.
+          assetsCache: Array.from(assetsArray),
+        })
+      } : (assetsArray) => {
+        console.log("Saving assetsCache");
+        localStorage.setItem("assetsCache", JSON.stringify(assetsArray));
+      }
+    )(assetsArray_)
+
+    // TODO subscribe to price updates (see API docs).
+  })();
+
+  /**
+   * @param {Asset[]} assetsArray 
+   * @returns {Map<Asset["id"], Asset>}
+   */
+  function assetsMapFromAssetsArray(assetsArray) {
     const assetsMap_ = new Map();
     for (const asset of assetsArray) {
       assetsMap_.set(asset.id, asset);
     }
-    assetsMap = assetsMap_;
-
-    // TODO subscribe to price updates (see API docs).
-  })();
+    return assetsMap_;
+  }
 </script>
 
 <main>
-  {#await initP}
-    <p>Loading...</p>
-  {:then}
+  {#if assetsArray && assetsMap}
     <form style="display: grid;">
       <!-- TODO add step? -->
       <!-- TODO fix: sometimes, if you save a really low amount,
@@ -198,6 +251,11 @@
         "
       >🔄</button>
     </form>
+  {/if}
+  {#await fetchAssetsP}
+    <p>Loading...</p>
+  {:then}
+  <!-- svelte-ignore block_empty -->
   {:catch}
     <p>Failed to fetch data 😖</p>
   {/await}
