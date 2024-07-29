@@ -49,7 +49,6 @@
 
   const loadSettings = typeof chrome !== "undefined"
     ? async () => {
-      // TODO fuck, they might be `undefined`.
       const settings = await chrome.storage.local.get()
       fromAssetId = settings.fromAssetId ?? fromAssetId;
       fromAmount = settings.fromAmount ?? fromAmount;
